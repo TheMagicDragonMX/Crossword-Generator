@@ -1,0 +1,175 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO;
+
+namespace Test_App
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+            Generacion();
+        }
+
+        //Abrir un archivo
+        System.IO.StreamReader Archivo = new System.IO.StreamReader("Words.txt");
+
+        //Numeros aleatorios
+        Random Random = new Random();
+
+        //Lista de Textbox
+        List<TextBox> Cajas = new List<TextBox>();
+
+        //Lista de Strings que no se repetiran
+        List<string> SinRepetir = new List<string>();
+
+        //GENERAR TEXTBOXES
+        public void Generacion()
+        {
+            //Guardar todo el archivo en una lista
+            int LineasDelArchivo = File.ReadAllLines("Words.txt").Length; //Guarda la cantidad de lineas que tiene el archivo
+            for(int Cont = 0; Cont < LineasDelArchivo; Cont++) //Guardara en toda la lista de string las lineas del archivo, para que no se repitan
+                SinRepetir.Add(Archivo.ReadLine()); //Lee cada linea del archivo
+            
+            //Generar una palabra aleatoria y eliminarla para que no se repita
+            int Random_SinRepetir = Random.Next(0, SinRepetir.Count);
+            string Palabra = SinRepetir[Random_SinRepetir].ToString();
+            SinRepetir.Remove(Palabra);
+
+            //Coordenadas en X y en Y
+            int X = 100;
+
+            //Todas estas características son las que cada textbox en particular debe tener
+            for (int i = 0; i < Palabra.Length; i++)
+            {
+                TextBox Caja = new TextBox();
+                Caja.Location = new Point(X, 200);
+                Caja.Multiline = true;
+                Font TipoDeLetra = new Font("Times New Roman", 12);
+                Caja.Font = TipoDeLetra;
+                Caja.TextAlign = HorizontalAlignment.Center;
+                Caja.Size = new Size(25, 25);
+
+                Caja.Name = Palabra.Substring(i, 1);
+                Caja.Text = Palabra.Substring(i, 1);
+                Controls.Add(Caja);
+                X += 25;
+                Cajas.Add(Caja);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////////
+            
+            for(int i = 0; i <= 4; i++)
+            {
+                //YA ES GENERAL
+                //Guarda una de las letras del crucigrama ya generado 
+                string Letra; //Guarda la nueva letra seleccionada
+                int Letra_Aleatoria = Random.Next(0, Cajas.Count); //Genera el numero de lista de la letra escogida
+                Letra = Cajas[Letra_Aleatoria].Text; //Asigna la letra a la variable
+
+                //YA ES GENERAL
+                //Agarrar otra palabra y buscar si tiene la letra asignada
+                while (true)
+                {
+                    Random_SinRepetir = Random.Next(0, SinRepetir.Count); //Genera un numero aleatorio en la lista de palabras
+                    Palabra = SinRepetir[Random_SinRepetir].ToString(); //Guarda la nueva palabra
+                    if (Palabra.Contains(Letra)) //Valida si contiene la letra que se selecciono antes
+                        break;
+                    if (Archivo.EndOfStream == true) //Sucede si llega al final del archivo sin que ninguna palabra tuvo esa letra (Super Freak)
+                    {
+                        Letra_Aleatoria = Random.Next(0, Cajas.Count); //Genera el numero de lista de la letra escogida
+                        Letra = Cajas[Letra_Aleatoria].Text; //Asigna la letra a la variable
+                    }//Si la letra no fue encontrada
+                }
+
+                while (true)
+                {
+                    try
+                    {
+                        //Antes de eliminar esa palabra de la lista, hay que ver si es posible que sea escrita en el lugar que le toco
+                        if (Cajas[Letra_Aleatoria].Location.X + 25 != Cajas[Letra_Aleatoria + 1].Location.X && Cajas[Letra_Aleatoria].Location.X - 25 != Cajas[Letra_Aleatoria - 1].Location.X)
+                        { //Se puede escribir en HORIZONTAL
+                            SinRepetir.Remove(Palabra); //Remover la palabra
+                            int XX = Cajas[Letra_Aleatoria].Location.X; //Posicion en X de la letra
+                            int YY = Cajas[Letra_Aleatoria].Location.Y; //Posicion en Y de la letra
+                            bool XMovement = true; //La letra se desplazara en horizontal
+                            Generar_Nueva_Palabra(Palabra, Letra, Letra_Aleatoria, XX, YY, XMovement); //Funcion que generara la nueva palabra
+                            break;
+                        }
+                        else
+                        {
+                            if (Cajas[Letra_Aleatoria].Location.Y + 25 != Cajas[Letra_Aleatoria + 1].Location.Y && Cajas[Letra_Aleatoria].Location.Y - 25 != Cajas[Letra_Aleatoria - 1].Location.Y)
+                            { //Se puede escribir en VERTICAL
+                                SinRepetir.Remove(Palabra); //Remover la palabra
+                                int XX = Cajas[Letra_Aleatoria].Location.X; //Posicion en X de la letra
+                                int YY = Cajas[Letra_Aleatoria].Location.Y; //Posicion en Y de la letra
+                                bool XMovement = false; //La letra se desplazara en vertical
+                                Generar_Nueva_Palabra(Palabra, Letra, Letra_Aleatoria, XX, YY, XMovement); //Funcion que generara la nueva palabra
+                                break;
+                            }
+                            else
+                            { //No se puede escribir ni en vertical ni en horizontal, de modo que se busca otro numero
+                                Letra_Aleatoria = Random.Next(0, Cajas.Count); //Genera el numero de lista de la letra escogida
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        Letra_Aleatoria = Random.Next(0, Cajas.Count); //Genera el numero de lista de la letra escogida
+                        Letra = Cajas[Letra_Aleatoria].Text; //Asigna la letra a la variable
+                    }
+                }
+            }
+        }
+
+        public void Generar_Nueva_Palabra(string Palabra, string Letra, int Letra_Aleatoria, int X, int Y, bool XMovement)
+        {
+            //Determinar que tanto hay que desplazarse para escribir la siguiente palabra
+            int Desplazamiento = 0;
+            for (int i = 0; i < Palabra.Length; i++)
+            {
+                if (Palabra.Substring(i, 1).Contains(Letra))
+                {
+                    break;
+                }
+                Desplazamiento++;
+            }
+            Desplazamiento *= 25;
+
+            if(XMovement == true)
+                X = Cajas[Letra_Aleatoria].Location.X - Desplazamiento;
+            else
+                Y = Cajas[Letra_Aleatoria].Location.Y - Desplazamiento;
+
+            //Todas estas características son las que cada textbox en particular debe tener
+            for (int i = 0; i < Palabra.Length; i++)
+            {
+                TextBox Caja = new TextBox();
+                Caja.Location = new Point(X, Y);
+                Caja.Multiline = true;
+                Font TipoDeLetra = new Font("Times New Roman", 12);
+                Caja.Font = TipoDeLetra;
+                Caja.TextAlign = HorizontalAlignment.Center;
+                Caja.Size = new Size(25, 25);
+
+                Caja.Name = Palabra.Substring(i, 1);
+                Caja.Text = Palabra.Substring(i, 1);
+                Controls.Add(Caja);
+                Cajas.Add(Caja);
+
+                if (XMovement == true)
+                    X += 25;
+                else
+                    Y += 25;
+            }
+        }
+    }
+}
